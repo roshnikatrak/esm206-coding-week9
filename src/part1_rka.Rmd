@@ -1,0 +1,82 @@
+---
+title: "Part 1 Multiple Linear Regression"
+author: "Roshni Katrak-Adefowora"
+date: "12/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(palmerpenguins)
+library(GGally)
+library(stargazer)
+```
+
+## Visual exploration
+
+```{r}
+penguins %>% 
+  ggpairs() #entire matrix of all possible relationships and distribution within each variable
+
+#lets just look at continuous variables
+penguins %>% 
+  select(species, bill_length_mm:body_mass_g) %>% 
+  ggpairs(aes(color=species)) #colors based on species
+
+#looks like there are linear relationship and not super high correlations that would suggest multicollinearity --> multilinear regression is good to go!
+```
+
+## Build a few different models
+
+The 4 model versions we will compare for this exercise are: 
+
+(1) Penguin Mass ~ Flipper Length + Species
+(2) Penguin Mass ~ Flipper Length + Species
+(3) Penguin Mass ~ Flipper Length + Species + Sex + Bill Length
+(4) Penguin Mass ~ Flipper Length + Species + Sex + Bill Length + Island
+
+
+```{r}
+lm1 <- lm(body_mass_g ~ flipper_length_mm + species, data=penguins)
+
+lm2 <- lm(body_mass_g ~ flipper_length_mm + species + sex, data=penguins)
+
+lm3 <- lm(body_mass_g ~ flipper_length_mm + species + sex + bill_length_mm, data=penguins)
+
+lm4 <- lm(body_mass_g ~ flipper_length_mm + species + sex + bill_length_mm + island, data=penguins)
+```
+
+## Find AIC value for each model
+
+Absolute value of AIC model doesn't mean anything. It's relative.
+```{r}
+AIC(lm1)
+AIC(lm2) #lower, good add of complexity
+AIC(lm3) #even lower
+AIC(lm4) #goes back up, the addition of island (added complexity) was not worth the increase in model fit
+
+#based on AIC, lm3 is lowest--> has the best balance of model fit and model complexity
+```
+
+## Use stargazer package for a table with multiple model outputs
+
+```{r, results = "asis"}
+stargazer(lm1, lm3, lm4, type="html")
+```
+
+## Omitted variable bias
+
+```{r}
+ggplot(data=penguins, aes(x=flipper_length_mm, y=bill_depth_mm))+
+  geom_point()+
+  geom_smooth(method="lm") #looks like there's an overall negative relationship between flipper length and bill depth. BUT!!! Is species important?
+```
+```{r}
+ggplot(data=penguins, aes(x=flipper_length_mm, y=bill_depth_mm, group=species))+
+  geom_point(aes(color=species))+
+  geom_smooth(method="lm") #applied within each species because of the grouping above
+#Now we see a positive relationship!
+#example of Simpson's paradox
+```
+
